@@ -1,0 +1,185 @@
+import java_cup.runtime.*;
+
+
+/********************** simbolos terminais ************************/
+terminal SOMA, SUB, MULT, DIV, MOD, MENOR, MENOR_I, IGUALIGUAL, MAIOR, MAIOR_I, DIF;
+terminal PAR_E, PAR_D, PARR_E, PARR_D, CHAV_E, CHAV_D, UMENOS;
+terminal VIRG, PONTO, P_VIRG, IGUAL, DPONTOS, DPIGUAL, IMPLICA, RECURS, BARRA_V;
+terminal AND, OR, NOT, INT, REAL, BOOL, VOID, RETURN, BREAK, COND, MAP, CLASS, WHILE, ELSE;
+terminal String INT_LIT,REAL_LIT, BOOL_LIT, ID;
+
+
+
+
+/******************* simbolos nao terminais ***********************/
+non terminal String program, decls, decl, ids, formals, formal_decl, non_empty_stats, primary;
+non terminal String sexp, exp, prim, type, single_type, stats, stat, clauses, non_empty_formals;
+
+
+/************************ precedencias ****************************/
+
+precedence left VIRG, P_VIRG;
+precedence left OR, AND;
+precedence nonassoc MENOR, MENOR_I, IGUALIGUAL, IGUAL, MAIOR, MAIOR_I, DIF; 
+precedence left SOMA, SUB;
+precedence left MULT, DIV, MOD, IMPLICA;
+precedence nonassoc PAR_E, PAR_D, PARR_E, PARR_D, CHAV_E, CHAV_D; 
+precedence left NOT, UMENOS, PONTO;
+
+
+
+/************************ gramatica *******************************/
+
+
+/************* Declaracoes ****************/
+
+program ::= decls:val {: RESULT = "program([" + val + "])"; :};
+	
+decls ::= decl:val		      {: RESULT = val;                 :}
+	| decl:val P_VIRG  	      {: RESULT = val;                 :}
+	| decl:val1 P_VIRG decls:val2 {: RESULT = val1 + "," + val2;   :};
+
+
+decl  ::= //ids:val1 IGUAL type:val2 		      
+	//{: RESULT = "type_def([" + val1 + "]," + val2 + ")"; :}
+	 ids:val1 DPONTOS type:val2	   	      
+	{: RESULT =  "var_def([" + val1 + "]," + val2 + ")"; :} 
+	| ids:val1 DPONTOS type:val2 DPIGUAL exp:val3 
+	{: RESULT =  "var_def([" + val1 + "]," + val2 + "," + val3 + "), assign([" + val1 + "]," 
+	              + val3 + ")"; :}
+	| ids:val1 DPONTOS type:val2 IGUAL exp:val3   
+	{: RESULT = "cnst_def([" + val1 + "]," + val2 + "," + val3 + ")"; :}
+	| ids:val1 IGUAL exp:val2		      
+	{: RESULT = "cnst_def([" + val1 + "]," + val2 + ")"; :}
+	| error                     		      
+	{: RESULT = "erro()"; :};
+
+formals ::= /* VAZIO */		 {: RESULT = "";  :}
+	| non_empty_formals:val	 {: RESULT = val; :};
+
+non_empty_formals ::= formal_decl:val   	         {: RESULT = val; 	        :}	
+	| formal_decl:val1 VIRG non_empty_formals:val2   {: RESULT = val1 + "," + val2; :}
+	| formal_decl:val1 P_VIRG non_empty_formals:val2 {: RESULT = val1 + "," + val2; :};
+
+formal_decl ::= ids:val 	     {: RESULT = "imp_type([" + val                + "])"; :}
+	| ids:val1 DPONTOS type:val2 {: RESULT = "exp_type([" + val1 + "]," + val2 +  ")"; :};
+
+ids ::=   ID:val 	   	{: RESULT = "name(" + val  + ")" ; :}
+	| ID:val1 VIRG ids:val2 {: RESULT = "name(" + val1 + ")," + val2; :};
+
+/********* Declaracoes de tipo ***********/
+
+type ::= single_type:val {: RESULT = val; :}
+	| PAR_E PAR_D    {: RESULT = "type(void)"; :} 	
+	| PAR_E type:val PAR_D {: RESULT = "type(tuple,[" + val + "])"; :}
+	| single_type:val1 VIRG type:val2 {: RESULT = val1 + "," + val2; :};
+
+single_type ::=	  
+	  PAR_E single_type:val PAR_D {: RESULT = val; :} 
+
+	| ID:val {: RESULT = "type(" + val + ")"; :} 	
+	| INT    {: RESULT = "type(int)" ; :}
+	| REAL   {: RESULT = "type(real)"; :}
+	| BOOL   {: RESULT = "type(bool)"; :}
+	| VOID   {: RESULT = "type(void)"; :}
+
+	| type:val1 IMPLICA type:val2      {: RESULT = "type(func,"   + val1 + "," + val2 + ")" ; :} 
+	| PARR_E exp:val1 PARR_D type:val2 {: RESULT = "type(array,"  + val1 + "," + val2 + ")" ; :}
+	| CHAV_E formals:val CHAV_D 	   {: RESULT = "type(class,[" + val               + "])"; :};
+
+/************* Expressoes ****************/
+
+exp ::= /* VAZIO */ {: RESULT = ""; :} 
+	| sexp:val  {: RESULT = val; :}	
+	| sexp:oper1 VIRG exp:oper2 {: RESULT = oper1 + "," + oper2; :}
+	| PAR_E exp:oper PAR_D  {: RESULT = "lit(tuple,[" + oper + "])"; :};
+
+sexp ::= PAR_E sexp:oper PAR_D {: RESULT = oper; :} 
+
+	/* operadores booleanos */
+	| sexp:oper1 OR sexp:oper2    {: RESULT = "op(or,"  + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 AND sexp:oper2   {: RESULT = "op(and," + oper1 + "," + oper2 + ")"; :}
+	| NOT sexp:oper               {: RESULT = "op(not," + oper  +               ")"; :}
+
+	/* operadores de comparacao */
+	| sexp:oper1 MENOR sexp:oper2      {: RESULT = "op(menor,"   + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 MENOR_I sexp:oper2    {: RESULT = "op(menor_i," + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 IGUALIGUAL sexp:oper2 {: RESULT = "op(igual,"   + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 IGUAL sexp:oper2      {: RESULT = "op(igual,"   + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 DIF sexp:oper2        {: RESULT = "op(dif,"     + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 MAIOR_I sexp:oper2    {: RESULT = "op(maior_i," + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 MAIOR sexp:oper2      {: RESULT = "op(maior," + oper1 + "," + oper2 + ")"; :}
+
+	/* operadores aritmeticos */
+	| sexp:oper1 SOMA sexp:oper2 {: RESULT = "op(soma,"  + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 SUB sexp:oper2  {: RESULT = "op(sub,"   + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 MULT sexp:oper2 {: RESULT = "op(mult,"  + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 DIV sexp:oper2  {: RESULT = "op(div,"   + oper1 + "," + oper2 + ")"; :}
+	| sexp:oper1 MOD sexp:oper2  {: RESULT = "op(mod,"   + oper1 + "," + oper2 + ")"; :}
+	| SUB sexp:oper 	     {: RESULT = "op(menos," + oper  + 		     ")"; :}
+	  %prec UMENOS
+
+	| sexp:val1 PONTO ID:val2    	    {: RESULT =  "qual_name(" + val1 + "," + val2  + ")"; :}
+	| sexp:val1 PARR_E exp:val2 PARR_D  {: RESULT =  "array_ref(" + val1 + "," + val2  + ")"; :}
+	| sexp:val1 PAR_E exp:val2 PAR_D    {: RESULT =   "func_ref(" + val1 + ",args([" + val2 +"]))"; :}
+	| RECURS PAR_E exp:val PAR_D 	    {: RESULT = "r_func_ref(args([" + val                + "]))"; :}
+	
+	/* literais */
+	| ID:val        	 {: RESULT = "name("      + val  + ")"; :}	
+	| INT_LIT:val   	 {: RESULT = "lit(int,"   + val  + ")"; :}
+	| REAL_LIT:val  	 {: RESULT = "lit(real,"  + val  + ")"; :}	
+	| BOOL_LIT:val  	 {: RESULT = "lit(bool,"  + val  + ")"; :}
+	| PARR_E exp:oper PARR_D {: RESULT = "lit(array,[" + oper + "])"; :}
+
+	| MAP PAR_E formals:val1 PAR_D PARR_E stats:val2 PARR_D 
+	{: RESULT = "lit(map, par([" + val1 + "]), stats([" + val2 + "]))"; :}
+
+	| MAP PAR_E formals:val1 PAR_D IMPLICA type:val2 PARR_E stats:val3 PARR_D 
+	{: RESULT = "lit(map, par([" + val1 + "])," + val2 + ", stats([" + val3 + "]))"; :}
+
+	| CLASS PAR_E formals:val1 PAR_D PARR_E stats:val2 PARR_D 
+	{: RESULT = "lit(class, par([" + val1 + "]), stats([" + val2 + "]))"; :};
+
+/********* Expressoes restritas **********/
+
+
+primary ::= prim:val 			 {: RESULT = val;                         :}
+	| primary:val1 VIRG primary:val2 {: RESULT = val1 + "," + val2;           :}
+	| PAR_E primary:val PAR_D        {: RESULT = "name_tuple([" + val + "])"; :};
+
+
+prim ::= ID:val 	 		    {: RESULT =       "name(" + val +               ")"; :}    	
+	| prim:val1 PONTO ID:val2  	    {: RESULT =  "qual_name(" + val1 + "," + val2 + ")"; :}
+     	| prim:val1 PARR_E exp:val2 PARR_D  {: RESULT =  "array_ref(" + val1 + "," + val2 + ")"; :};
+
+
+/************* Instrucoes ****************/
+
+
+stats ::= /* VAZIA */		      {: RESULT = "";  :}				
+	| non_empty_stats:val	      {: RESULT = val; :};
+		
+non_empty_stats ::= stat:val  	      		{: RESULT = val;               :}
+	| stat:val P_VIRG 	      		{: RESULT = val;               :}
+	| stat:val1 P_VIRG non_empty_stats:val2 {: RESULT = val1 + "," + val2; :};
+
+stat ::= decl:val			     {: RESULT = val				         ; :}
+	| primary:val1 DPIGUAL exp:val2      {: RESULT =    "assign([" + val1 + "],"  + val2  + ")"; :}
+	| primary:val1 PAR_E exp:val2 PAR_D  {: RESULT = "func_call(" + val1 + ",args([" + val2  +"]))"; :}
+	| RETURN exp:val		     {: RESULT =    "return(" + val  	            + ")"; :}
+	| RECURS PAR_E exp:val PAR_D 	     {: RESULT = "r_func_call(args([" + val       + "]))"; :}	
+	| BREAK				     {: RESULT =      "break";         :}
+	| COND PARR_E clauses:val PARR_D     {: RESULT =      "cond(" + val 	            + ")"; :}  
+	| WHILE PARR_E clauses:val PARR_D    {: RESULT =     "while(" + val 	            + ")"; :} 
+	| PARR_E stats:val PARR_D	     
+	{: RESULT = "block([" + val + "])"; :};
+
+clauses ::= exp:val1 IMPLICA stats:val2 
+	{: RESULT = "clauses(" + val1 + ",stats([" + val2 + "]))"; :}
+
+	| exp:val1 IMPLICA stats:val2 BARRA_V clauses:val3 
+	{: RESULT = "clauses(" + val1 + ",stats([" + val2 + "])," + val3 + ")"; :} 
+
+	| exp:val1 IMPLICA stats:val2 BARRA_V ELSE IMPLICA stats:val3 
+	{: RESULT = "clauses(" + val1 + ",stats([" + val2 + "]),stats([" + val3 + "]))"; :}; 
+
