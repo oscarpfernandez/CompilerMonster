@@ -1,0 +1,141 @@
+
+.DATA
+mC:	.WORD	3
+nC:	.WORD	8
+
+.TEXT
+program:
+	PUSH 0
+	LINK
+	DUP
+	DUP
+	PUSH nC
+	LOAD
+	PUSH mC
+	LOAD
+	PUSH acker
+	CALL
+	POP
+	POP
+	PUSH print_int
+	CALL
+	POP
+	POP
+	DUP
+	PUSH 10
+	PUSH print_char
+	CALL
+	POP
+	POP
+	UNLINK
+	JUMP
+
+.TEXT
+acker:
+	PUSH 0
+	LINK
+	PUSH label_1
+	PUSH 1
+	LOCAL
+	LOAD
+	PUSH 0
+	SLT
+	PUSH 1
+	SWAP
+	SUB
+	PUSH 0
+	PUSH 1
+	LOCAL
+	LOAD
+	SLT
+	PUSH 1
+	SWAP
+	SUB
+	MUL
+	SKIPZ
+	JUMP
+	POP
+	PUSH label_2
+	JUMP
+label_1:
+	PUSH 2
+	LOCAL
+	LOAD
+	PUSH 1
+	ADD
+	PUSH 3
+	LOCAL
+	STORE
+	PUSH label_0
+	JUMP
+label_2:
+	PUSH label_3
+	PUSH 2
+	LOCAL
+	LOAD
+	PUSH 0
+	SLT
+	PUSH 1
+	SWAP
+	SUB
+	PUSH 0
+	PUSH 2
+	LOCAL
+	LOAD
+	SLT
+	PUSH 1
+	SWAP
+	SUB
+	MUL
+	SKIPZ
+	JUMP
+	POP
+	PUSH label_4
+	JUMP
+label_3:
+	DUP
+	PUSH 1
+	PUSH 1
+	LOCAL
+	LOAD
+	PUSH 1
+	SUB
+	PUSH acker
+	CALL
+	POP
+	POP
+	PUSH 3
+	LOCAL
+	STORE
+	PUSH label_0
+	JUMP
+label_4:
+	DUP
+	DUP
+	PUSH 2
+	LOCAL
+	LOAD
+	PUSH 1
+	SUB
+	PUSH 1
+	LOCAL
+	LOAD
+	PUSH acker
+	CALL
+	POP
+	POP
+	PUSH 1
+	LOCAL
+	LOAD
+	PUSH 1
+	SUB
+	PUSH acker
+	CALL
+	POP
+	POP
+	PUSH 3
+	LOCAL
+	STORE
+label_0:
+	UNLINK
+	JUMP
