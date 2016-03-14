@@ -1,0 +1,4 @@
+jflex -d Parser/gen/ Generators/tpl.lex
+java -jar ThirdParty/java-cup-11b.jar -destdir Parser/gen/ Generators/tpl.cup
+mkdir -p Parser/gen/org/ofernandez/tpl/compilerparser
+java -jar ThirdParty/java-cup-11b.jar -package org.ofernandez.tpl.compilerparser -destdir Parser/gen/org/ofernandez/tpl/compilerparser Generators/tpl.cup
